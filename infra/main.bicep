@@ -1,101 +1,81 @@
-// Main infrastructure file for the AI Chat Interface
-targetScope = 'resourceGroup'
+targetScope = 'subscription'
+param webapiName string = 'webapi-rxyz'
+param appServicePlanName string = 'appserviceplan'
 
-// ====================
-// PARAMETERS
-// ====================
+@minLength(1)
+@maxLength(64)
+@description('Name of the environment that can be used as part of naming resource convention')
+param environmentName string
 
-param environmentName string = 'dev'
-param location string = resourceGroup().location
-param resourceToken string = toLower(uniqueString(subscription().id, resourceGroup().id, location))
+@minLength(1)
+@description('Primary location for all resources')
+param location string
 
-// Derived names for Azure resources
-param webappName string = 'webapp-${resourceToken}'
-param webapiName string = 'webapi-${resourceToken}'
-param appServicePlanName string = 'asp-${resourceToken}'
+param rg string = ''
+param webappName string = 'webapp'
 
-// ====================
-// VARIABLES
-// ====================
+@description('Location for the Static Web App')
+@allowed(['westus2', 'centralus', 'eastus2', 'westeurope', 'eastasia', 'eastasiastage'])
+@metadata({
+  azd: {
+    type: 'location'
+  }
+})
+param webappLocation string
 
+
+
+
+@description('Id of the user or app to assign application roles')
+param principalId string
+
+// ---------------------------------------------------------------------------
+// Common variables
+var abbrs = loadJsonContent('./abbreviations.json')
 var tags = {
   'azd-env-name': environmentName
-  project: 'ai-chat-interface'
 }
 
-// ====================
-// RESOURCES
-// ====================
+// ---------------------------------------------------------------------------
+// Resources
 
-// App Service Plan for the webapi
-resource serverfarm 'Microsoft.Web/serverfarms@2024-04-01' = {
-  name: appServicePlanName
+// Organize resources in a resource group ✅
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: !empty(rg) ? rg : '${abbrs.resourcesResourceGroups}${environmentName}'
   location: location
   tags: tags
-  sku: {
-    name: 'B1'
-    tier: 'Basic'
+}
+
+module webapp 'br/public:avm/res/web/static-site:0.7.0' = {
+  name: 'webapp'
+  scope: resourceGroup
+  params: {
+    name: webappName
+    location: webappLocation
+    tags: union(tags, { 'azd-service-name': webappName })
+    sku: 'Standard'
   }
-  properties: {
-    reserved: false
+  
+}
+module serverfarm 'br/public:avm/res/web/serverfarm:0.4.1' = {
+  name: 'appserviceplan'
+  scope: resourceGroup
+  params: {
+    name: appServicePlanName
+    skuName: 'B1'
   }
 }
 
-// App Service for the webapi
-resource webapi 'Microsoft.Web/sites@2024-04-01' = {
-  name: webapiName
-  location: location
-  tags: union(tags, { 'azd-service-name': 'webapi' })
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    serverFarmId: serverfarm.id
-    httpsOnly: true
-    siteConfig: {
-      ftpsState: 'Disabled'
-      minTlsVersion: '1.2'
-      nodeVersion: '18-lts'
-      appSettings: [
-        {
-          name: 'AZURE_INFERENCE_SDK_ENDPOINT'
-          value: 'https://gpt-4o-mini-uc7m.eastus2.models.ai.azure.com'
-        }
-        {
-          name: 'AZURE_INFERENCE_SDK_KEY'
-          value: 'BPjfh3MAvYKrEnidzbDbNMrhDxfc0rcWORkTWTBQFyi94QQKYDkOJQQJ99BFACfhMk5XJ3w3AAAAACOGXy2p'
-        }
-      ]
-      cors: {
-        allowedOrigins: ['*']
-        supportCredentials: false
-      }
-    }
+module webapi 'br/public:avm/res/web/site:0.15.1' = {
+  name: 'webapi'
+  scope: resourceGroup
+  params: {
+    kind: 'app'
+    name: webapiName
+    tags: union(tags, { 'azd-service-name': 'webapi' })
+    serverFarmResourceId: serverfarm.outputs.resourceId
   }
 }
+output WEBAPP_URL string = webapp.outputs.defaultHostname
 
-// Static Web App for the frontend
-resource webapp 'Microsoft.Web/staticSites@2024-04-01' = {
-  name: webappName
-  location: location
-  tags: union(tags, { 'azd-service-name': 'webapp' })
-  sku: {
-    name: 'Standard'
-    tier: 'Standard'
-  }
-  properties: {
-    buildProperties: {
-      appLocation: '/'
-      apiLocation: ''
-      outputLocation: 'dist'
-    }
-  }
-}
-
-// ====================
-// OUTPUTS
-// ====================
-
-output WEBAPP_URL string = 'https://${webapp.properties.defaultHostname}'
-output WEBAPI_URL string = 'https://${webapi.properties.defaultHostName}'
-output RESOURCE_GROUP_NAME string = resourceGroup().name
+output WEBAPI_URL string = webapi.outputs.defaultHostname
