@@ -4,9 +4,9 @@ import { server } from "./server.js";
 console.log("Starting MCP server...");
 server
   .listen({ port: 8080 })
-  .then(({ port }) => {
+  .then(({ port }: { port: number }) => {
     console.log(`🚀 MCP server listening at http://localhost:${port}`);
   })
-  .catch((error) => {
+  .catch((error: Error) => {
     console.error("Failed to start MCP server:", error);
   });
