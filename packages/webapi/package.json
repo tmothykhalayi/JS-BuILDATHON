@@ -1,0 +1,45 @@
+{
+  "name": "",
+  "version": "1.0.0",
+  "description": "LangChain.js backend with conversation memory",
+  "main": "index.js",
+  "type": "module",
+  "license": "AGPL-version-3.0",
+  "private": false,
+  "engines": {
+    "node": ">= 14.0.0",
+    "npm": ">= 10.10.0"
+  },
+  "homepage": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": "",
+  "keywords": [],
+  "author": {
+    "name": "",
+    "email": "",
+    "url": ""
+  },
+  "contributors": [],
+  "scripts": {
+    "dev": "",
+    "test": "",
+    "start": "node server.js",
+    "langchain": "echo 'LangChain.js with conversation memory enabled'"
+  },
+  "dependencies": {
+    "@azure-rest/ai-inference": "^1.0.0-beta.6",
+    "@azure/core-auth": "^1.9.0",
+    "@langchain/azure-openai": "^0.1.0",
+    "@langchain/openai": "^0.5.16",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "express": "^5.1.0",
+    "langchain": "^0.3.29",
+    "pdf-parse": "^1.1.1"
+  }
+}
