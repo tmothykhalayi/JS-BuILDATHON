@@ -10,6 +10,7 @@ export class ChatInterface extends LitElement {
       isLoading: { type: Boolean },
       isRetrieving: { type: Boolean },
       ragEnabled: { type: Boolean },
+      chatMode: { type: String }, // Add new property for mode
     };
   }
 
@@ -21,6 +22,7 @@ export class ChatInterface extends LitElement {
     this.isLoading = false;
     this.isRetrieving = false;
     this.ragEnabled = true;
+    this.chatMode = "basic"; // Set default mode to basic
     // Generate a unique session ID for conversation memory
     this.sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
   }
@@ -51,11 +53,19 @@ export class ChatInterface extends LitElement {
           <button class="clear-cache-btn" @click=${this._clearCache}>
             🧹Clear Chat
           </button>
-          <label class="rag-toggle">
+          <div class="mode-selector">
+            <label>Mode:</label>
+            <select @change=${this._handleModeChange}>
+              <option value="basic" ?selected=${this.chatMode === 'basic'}>Basic AI</option>
+              <option value="agent" ?selected=${this.chatMode === 'agent'}>Agent</option>
+            </select>
+          </div>
+          <label class="rag-toggle ${this.chatMode === 'agent' ? 'disabled' : ''}">
             <input 
               type="checkbox" 
               .checked=${this.ragEnabled} 
               @change=${this._toggleRag}
+              ?disabled=${this.chatMode === 'agent'}
             />
             📚 Use Company Knowledge
           </label>
@@ -66,7 +76,7 @@ export class ChatInterface extends LitElement {
               <div class="message ${msg.role}-message">
                 <div class="message-content">
                   <span class="message-sender">
-                    ${msg.role === "user" ? "You" : "AI"}
+                    ${msg.role === "user" ? "You" : (this.chatMode === 'agent' ? 'Agent' : 'AI')}
                   </span>
                   <p>${msg.content}</p>
                   ${msg.sources && msg.sources.length > 0
@@ -106,7 +116,9 @@ export class ChatInterface extends LitElement {
         <div class="chat-input">
           <input
             type="text"
-            placeholder="Ask about company policies, benefits, etc..."
+            placeholder=${this.chatMode === 'basic' ? 
+              "Ask about company policies, benefits, etc..." : 
+              "Ask Agent"}
             .value=${this.inputMessage}
             @input=${this._handleInput}
             @keyup=${this._handleKeyUp}
@@ -125,6 +137,24 @@ export class ChatInterface extends LitElement {
   // add method to handle the toggle change
   _toggleRag(e) {
     this.ragEnabled = e.target.checked;
+  }
+
+  // Handle mode change between basic and agent
+  _handleModeChange(e) {
+    const newMode = e.target.value;
+    if (newMode !== this.chatMode) {
+      this.chatMode = newMode;
+      
+      // Disable RAG when switching to agent mode
+      if (newMode === 'agent') {
+        this.ragEnabled = false;
+      }
+      
+      clearMessages();
+      this.messages = [];
+      // Generate new session ID to reset conversation memory
+      this.sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+    }
   }
 
   // Clear chat history from localStorage and UI
@@ -197,6 +227,7 @@ export class ChatInterface extends LitElement {
   }
 
   // Call the API with RAG support and session ID for conversation memory
+  // Call the API with RAG support, session ID for conversation memory, and mode selection
   async _apiCall(message) {
     const res = await fetch("http://localhost:3001/chat", {
       method: "POST",
@@ -204,7 +235,8 @@ export class ChatInterface extends LitElement {
       body: JSON.stringify({ 
         message,
         useRAG: this.ragEnabled,
-        sessionId: this.sessionId
+        sessionId: this.sessionId,
+        mode: this.chatMode // Send the selected mode to the server
       }),
     });
     const data = await res.json();

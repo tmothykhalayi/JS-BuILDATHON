@@ -405,3 +405,6 @@ FodyWeavers.xsd
 
 # Environment variables
 .env
+
+# Agent configuration files (contains sensitive info)
+packages/agent/my-agent.agent.yaml

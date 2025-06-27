@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { AzureChatOpenAI } from "@langchain/openai";
 import { BufferMemory } from "langchain/memory";
 import { ChatMessageHistory } from "langchain/stores/message/in_memory";
+import { AgentService } from "./agentService.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -95,10 +96,32 @@ function getSessionMemory(sessionId) {
   return sessionMemories[sessionId];
 }
 
+// Initialize AgentService
+const agentService = new AgentService();
+
 app.post("/chat", async (req, res) => {
   const userMessage = req.body.message;
   const useRAG = req.body.useRAG === undefined ? true : req.body.useRAG;
   const sessionId = req.body.sessionId || "default";
+  const mode = req.body.mode || "basic";
+
+  // If agent mode is selected, route to agent service
+  if (mode === "agent") {
+    try {
+      const agentResponse = await agentService.processMessage(sessionId, userMessage);
+      return res.json({
+        reply: agentResponse.reply,
+        sources: []
+      });
+    } catch (error) {
+      console.error("Agent service error:", error);
+      return res.status(500).json({
+        error: "Agent call failed",
+        message: error.message,
+        reply: "Sorry, I encountered an error with the agent. Please try again."
+      });
+    }
+  }
 
   let sources = [];
 
