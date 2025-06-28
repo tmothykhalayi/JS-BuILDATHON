@@ -1,26 +1,48 @@
-// Mock implementation for development purposes
-// This allows us to proceed with the quest without the actual MCP SDK
-class McpServer {
-    constructor(config) {
-        this.tools = [];
-        this.name = config.name;
-        this.description = config.description;
-        this.version = config.version;
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
     }
-    tool(name, description, params, handler) {
-        this.tools.push({ name, description, params, handler });
-        return this;
-    }
-    listen(options) {
-        return Promise.resolve({ port: options.port });
-    }
-}
-import * as os from "os";
-const server = new McpServer({
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.server = void 0;
+const mcp_js_1 = require("@modelcontextprotocol/sdk/server/mcp.js");
+const os = __importStar(require("os"));
+// Create server instance
+const server = new mcp_js_1.McpServer({
     name: "node-os-mcp",
     description: "A server that provides tools to get information about the operating system.",
     version: "0.0.1",
 });
+exports.server = server;
 server.tool("cpu_average_usage", "Get the average CPU usage percentage on the local machine", {}, async () => {
     // Calculate average CPU usage over 100ms
     function cpuAverage() {
@@ -69,4 +91,4 @@ server.tool("get_uptime", "Get the uptime of the local machine in seconds", {}, 
         }],
     isError: false
 }));
-export { server };
+//# sourceMappingURL=server.js.map
