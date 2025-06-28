@@ -1,2 +1,10 @@
+# dependencies
 node_modules/
-dist/
+
+# misc
+.env
+.deployment
+.DS_Store
+
+# build
+lib/

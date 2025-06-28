@@ -1,6 +1,8 @@
+// File: packages/webapp/src/components/chat.js
+
 import { LitElement, html } from 'lit';
 import { loadMessages, saveMessages, clearMessages } from '../utils/chatStore.js';
-import './chat.css'; // Import the CSS file
+import './chat.css';
 
 export class ChatInterface extends LitElement {
   static get properties() {
@@ -10,237 +12,144 @@ export class ChatInterface extends LitElement {
       isLoading: { type: Boolean },
       isRetrieving: { type: Boolean },
       ragEnabled: { type: Boolean },
-      chatMode: { type: String }, // Add new property for mode
+      sessionId: { type: String },
+      chatMode: { type: String }
     };
   }
 
   constructor() {
     super();
-    // Initialize component state
     this.messages = [];
-    this.inputMessage = "";
+    this.inputMessage = '';
     this.isLoading = false;
     this.isRetrieving = false;
     this.ragEnabled = true;
-    this.chatMode = "basic"; // Set default mode to basic
-    // Generate a unique session ID for conversation memory
-    this.sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+    this.chatMode = "basic";
+    this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 
-  // Render into light DOM so external CSS applies
-  createRenderRoot() {
-    return this;
+  createRenderRoot() { return this; }
+  connectedCallback() { super.connectedCallback(); this.messages = loadMessages(); }
+  updated(changedProps) { if (changedProps.has('messages')) { saveMessages(this.messages); this.scrollToBottom(); } }
+  scrollToBottom() { const el = this.querySelector('.chat-messages'); if (el) { el.scrollTop = el.scrollHeight; } }
+
+  _clearCache() {
+    clearMessages();
+    this.messages = [];
+    this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-    // Load chat history from localStorage when component is added to the DOM
-    this.messages = loadMessages();
-  }
+  _handleInput(e) { this.inputMessage = e.target.value; }
+  _handleKeyUp(e) { if (e.key === 'Enter' && this.inputMessage.trim() && !this.isLoading) { this._sendMessage(); } }
+  _toggleRag(e) { this.ragEnabled = e.target.checked; }
 
-  updated(changedProps) {
-    // Save chat history to localStorage whenever messages change
-    if (changedProps.has("messages")) {
-      saveMessages(this.messages);
+  _handleModeChange(e) {
+    const newMode = e.target.value;
+    if (newMode !== this.chatMode) {
+      this.chatMode = newMode;
+      if (newMode === 'agent') {
+        this.ragEnabled = false;
+      }
+      this._clearCache(); // Clear messages and start new session when mode changes
     }
   }
-
+  
   render() {
-    // Render the chat UI: header, messages, and input area
     return html`
       <div class="chat-container">
         <div class="chat-header">
-          <button class="clear-cache-btn" @click=${this._clearCache}>
-            🧹Clear Chat
-          </button>
+          <h3>${this.chatMode === 'agent' ? 'AI Agent' : 'AI Assistant'}</h3>
+          
           <div class="mode-selector">
             <label>Mode:</label>
-            <select @change=${this._handleModeChange}>
-              <option value="basic" ?selected=${this.chatMode === 'basic'}>Basic AI</option>
-              <option value="agent" ?selected=${this.chatMode === 'agent'}>Agent</option>
+            <select @change=${this._handleModeChange} .value=${this.chatMode}>
+              <option value="basic">Basic AI</option>
+              <option value="agent">Agent</option>
             </select>
           </div>
+
           <label class="rag-toggle ${this.chatMode === 'agent' ? 'disabled' : ''}">
-            <input 
-              type="checkbox" 
-              .checked=${this.ragEnabled} 
-              @change=${this._toggleRag}
-              ?disabled=${this.chatMode === 'agent'}
-            />
-            📚 Use Company Knowledge
+            <input type="checkbox" ?checked=${this.ragEnabled} @change=${this._toggleRag} ?disabled=${this.chatMode === 'agent'}>
+            Use Handbook
           </label>
+
+          <button class="clear-cache-btn" @click=${this._clearCache}>🧹 Clear</button>
         </div>
         <div class="chat-messages">
-          ${this.messages.map(
-            (msg, index) => html`
-              <div class="message ${msg.role}-message">
-                <div class="message-content">
-                  <span class="message-sender">
-                    ${msg.role === "user" ? "You" : (this.chatMode === 'agent' ? 'Agent' : 'AI')}
-                  </span>
-                  <p>${msg.content}</p>
-                  ${msg.sources && msg.sources.length > 0
-                    ? html`
-                        <div class="sources">
-                          <details>
-                            <summary>📖 Sources (${msg.sources.length})</summary>
-                            <div class="sources-content">
-                              ${msg.sources.map(
-                                (source, idx) => html`
-                                  <div class="source-item">
-                                    <strong>Source ${idx + 1}:</strong>
-                                    <p>${source}</p>
-                                  </div>
-                                `
-                              )}
-                            </div>
-                          </details>
-                        </div>
-                      `
-                    : ""}
-                </div>
+          ${this.messages.map(message => html`
+            <div class="message ${message.role === 'user' ? 'user-message' : 'ai-message'}">
+              <div class="message-content">
+                <span class="message-sender">${message.role === 'user' ? 'You' : (this.chatMode === 'agent' ? 'Agent' : 'AI')}</span>
+                <p>${message.content}</p>
+                ${this.ragEnabled && message.sources && message.sources.length > 0 ? html`
+                  <details class="sources"><summary>📚 Sources</summary><div class="sources-content">${message.sources.map(source => html`<p>${source}</p>`)}</div></details>
+                ` : ''}
               </div>
-            `
-          )}
-          ${this.isLoading
-            ? html`
-                <div class="message ai-message">
-                  <div class="message-content">
-                    <span class="message-sender">AI</span>
-                    <p>Thinking...</p>
-                  </div>
-                </div>
-              `
-            : ""}
+            </div>
+          `)}
+          ${this.isRetrieving ? html`<div class="message system-message"><p>📚 Searching employee handbook...</p></div>` : ''}
+          ${this.isLoading && !this.isRetrieving ? html`<div class="message ai-message"><div class="message-content"><span class="message-sender">${this.chatMode === 'agent' ? 'Agent' : 'AI'}</span><p class="thinking">Thinking<span>.</span><span>.</span><span>.</span></p></div></div>` : ''}
         </div>
         <div class="chat-input">
-          <input
-            type="text"
-            placeholder=${this.chatMode === 'basic' ? 
-              "Ask about company policies, benefits, etc..." : 
-              "Ask Agent"}
+          <input 
+            type="text" 
+            placeholder=${this.chatMode === 'basic' ? "Ask about company policies..." : "Ask agent a question..."}
             .value=${this.inputMessage}
             @input=${this._handleInput}
             @keyup=${this._handleKeyUp}
           />
-          <button
-            @click=${this._sendMessage}
-            ?disabled=${this.isLoading || !this.inputMessage.trim()}
-          >
-            Send
-          </button>
+          <button @click=${this._sendMessage} ?disabled=${this.isLoading || !this.inputMessage.trim()}>Send</button>
         </div>
       </div>
     `;
   }
 
-  // add method to handle the toggle change
-  _toggleRag(e) {
-    this.ragEnabled = e.target.checked;
-  }
-
-  // Handle mode change between basic and agent
-  _handleModeChange(e) {
-    const newMode = e.target.value;
-    if (newMode !== this.chatMode) {
-      this.chatMode = newMode;
-      
-      // Disable RAG when switching to agent mode
-      if (newMode === 'agent') {
-        this.ragEnabled = false;
-      }
-      
-      clearMessages();
-      this.messages = [];
-      // Generate new session ID to reset conversation memory
-      this.sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
-    }
-  }
-
-  // Clear chat history from localStorage and UI
-  _clearCache() {
-    clearMessages();
-    this.messages = [];
-    // Generate new session ID to reset conversation memory
-    this.sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
-  }
-
-  // Update inputMessage state as the user types
-  _handleInput(e) {
-    this.inputMessage = e.target.value;
-  }
-
-  // Send message on Enter key if not loading
-  _handleKeyUp(e) {
-    if (e.key === "Enter" && this.inputMessage.trim() && !this.isLoading) {
-      this._sendMessage();
-    }
-  }
-
-  // Handle sending a message and receiving a response
   async _sendMessage() {
-    if (!this.inputMessage.trim() || this.isLoading) return;
-
-    // Add user's message to the chat
-    const userMessage = {
-      role: "user",
-      content: this.inputMessage,
-    };
-
+    if (!this.inputMessage.trim()) return;
+    const userMessage = { role: 'user', content: this.inputMessage };
     this.messages = [...this.messages, userMessage];
     const userQuery = this.inputMessage;
-    this.inputMessage = "";
+    this.inputMessage = '';
     this.isLoading = true;
-
-    // Show retrieval message if RAG is enabled
-    if (this.ragEnabled) {
+    if (this.ragEnabled && this.chatMode === 'basic') {
       this.isRetrieving = true;
     }
-
     try {
-      // Call the API with RAG support and session ID for memory
-      const aiResponse = await this._apiCall(userQuery);
-
-      // Add AI's response to the chat
-      this.messages = [
-        ...this.messages,
-        { 
-          role: "assistant", 
-          content: aiResponse.reply || aiResponse,
-          sources: aiResponse.sources || []
-        },
-      ];
+      const responseData = await this._apiCall(userQuery);
+      this.isRetrieving = false;
+      if (responseData && responseData.reply) {
+        this.messages = [ ...this.messages, { role: 'assistant', content: responseData.reply, sources: responseData.sources }];
+      } else { throw new Error("Invalid response from backend."); }
     } catch (error) {
-      // Handle errors gracefully
-      console.error("Error calling model:", error);
-      this.messages = [
-        ...this.messages,
-        {
-          role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
-        },
-      ];
+      console.error('Error calling model:', error);
+      this.isRetrieving = false;
+      this.messages = [ ...this.messages, { role: 'assistant', content: `Sorry, I encountered an error: ${error.message}`, sources: [] }];
     } finally {
       this.isLoading = false;
-      this.isRetrieving = false;
     }
   }
 
-  // Call the API with RAG support and session ID for conversation memory
-  // Call the API with RAG support, session ID for conversation memory, and mode selection
   async _apiCall(message) {
-    const res = await fetch("http://localhost:3001/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        message,
-        useRAG: this.ragEnabled,
-        sessionId: this.sessionId,
-        mode: this.chatMode // Send the selected mode to the server
-      }),
-    });
-    const data = await res.json();
-    return data;
+    try {
+      const res = await fetch("http://localhost:3001/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          message,
+          useRAG: this.ragEnabled,
+          sessionId: this.sessionId,
+          mode: this.chatMode
+        }),
+      });
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({ error: 'Failed to parse error response' }));
+        throw new Error(errorBody.message || `Request failed with status ${res.status}`);
+      }
+      return await res.json();
+    } catch (err) {
+      console.error("API call failed:", err);
+      throw err;
+    }
   }
 }
 

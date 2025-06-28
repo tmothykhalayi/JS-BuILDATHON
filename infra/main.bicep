@@ -1,6 +1,7 @@
-targetScope = 'subscription'
-param webapiName string = 'webapi-rxyz'
+param webapiName string = 'vite-chat-api'
 param appServicePlanName string = 'appserviceplan'
+
+targetScope = 'subscription'
 
 @minLength(1)
 @maxLength(64)
@@ -15,16 +16,20 @@ param rg string = ''
 param webappName string = 'webapp'
 
 @description('Location for the Static Web App')
-@allowed(['westus2', 'centralus', 'eastus2', 'westeurope', 'eastasia', 'eastasiastage'])
+@allowed([
+  'westus2'
+  'centralus'
+  'eastus2'
+  'westeurope'
+  'eastasia'
+  'eastasiastage'
+])
 @metadata({
   azd: {
     type: 'location'
   }
 })
 param webappLocation string
-
-
-
 
 @description('Id of the user or app to assign application roles')
 param principalId string
@@ -39,7 +44,7 @@ var tags = {
 // ---------------------------------------------------------------------------
 // Resources
 
-// Organize resources in a resource group ✅
+// Organize resources in a resource group
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: !empty(rg) ? rg : '${abbrs.resourcesResourceGroups}${environmentName}'
   location: location
@@ -55,14 +60,15 @@ module webapp 'br/public:avm/res/web/static-site:0.7.0' = {
     tags: union(tags, { 'azd-service-name': webappName })
     sku: 'Standard'
   }
-  
 }
+
 module serverfarm 'br/public:avm/res/web/serverfarm:0.4.1' = {
   name: 'appserviceplan'
   scope: resourceGroup
   params: {
     name: appServicePlanName
     skuName: 'B1'
+    location: location
   }
 }
 
@@ -72,10 +78,17 @@ module webapi 'br/public:avm/res/web/site:0.15.1' = {
   params: {
     kind: 'app'
     name: webapiName
-    tags: union(tags, { 'azd-service-name': 'webapi' })
     serverFarmResourceId: serverfarm.outputs.resourceId
+    location: location
+    tags: union(tags, { 'azd-service-name': 'webapi' })
+    
+    // ✅ FINAL FIX: Setting the Node.js version via Application Settings,
+    // as suggested by the VS Code error message.
+    appSettingsKeyValuePairs: {
+      linuxFxVersion: 'NODE|20-lts'
+    }
   }
 }
-output WEBAPP_URL string = webapp.outputs.defaultHostname
 
+output WEBAPP_URL string = webapp.outputs.defaultHostname
 output WEBAPI_URL string = webapi.outputs.defaultHostname
