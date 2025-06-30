@@ -1,85 +1,47 @@
-import ModelClient from "@azure-rest/ai-inference";
-import { AzureKeyCredential } from "@azure/core-auth";
-import dotenv from "dotenv";
-
-// Load environment variables from .env file
+import dotenv from 'dotenv';
 dotenv.config();
 
-// Azure AI Foundry configuration
-const endpoint = process.env.AZURE_INFERENCE_SDK_ENDPOINT;
-const apiKey = process.env.AZURE_INFERENCE_SDK_KEY;
+import ModelClient from "@azure-rest/ai-inference";
+import { AzureKeyCredential } from "@azure/core-auth";
 
-// Check if credentials are properly configured
-if (!endpoint || !apiKey) {
-    console.error("❌ Error: Azure AI Foundry credentials not configured properly");
-    console.log("📝 Please update your .env file with:");
-    console.log("   AZURE_INFERENCE_SDK_ENDPOINT=your_endpoint_here");
-    console.log("   AZURE_INFERENCE_SDK_KEY=your_api_key_here");
-    process.exit(1);
-}
+// Initialize Azure Inference client
+const client = new ModelClient(
+  process.env.AZURE_INFERENCE_SDK_ENDPOINT ?? "https://aistudioaiservices343581460336.services.ai.azure.com/models",
+  new AzureKeyCredential(process.env.AZURE_INFERENCE_SDK_KEY ?? "5O6ZCyKF51TnueAJXJM3FQJ7GGaakZjgA6s9lSi31eojHPxfNWsHJQQJ99BFAC77bzfXJ3w3AAAAACOGNMKB")
+);
 
-// Initialize the client
-const client = new ModelClient(endpoint, new AzureKeyCredential(apiKey));
+// Define messages for the chat model
+const messages = [
+  { role: "system", content: "You are a helpful assistant" },
+  { role: "user", content: "What are 3 things to see in Seattle?" },
+];
 
-async function chatWithAzureAI() {
-    try {
-        console.log("🚀 Starting Azure AI Foundry chat completion...");
-        console.log(`📡 Endpoint: ${endpoint}`);
-        console.log(`🔑 API Key configured: ${apiKey ? '✅ Yes' : '❌ No'}`);
+async function run() {
+  try {
+    const response = await client.path("chat/completions").post({
+      body: {
+        messages: messages,
+        max_tokens: 2048,
+        temperature: 0.8,
+        top_p: 0.1,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        model: "Llama-4-Scout-17B-16E-Instruct",
+      },
+    });
 
-        const messages = [
-            { role: "system", content: "You are a helpful assistant specializing in web development and Azure services." },
-            { role: "user", content: "What are the key benefits of deploying AI models to Azure AI Foundry compared to using them locally?" },
-        ];
-
-        const response = await client.path("/chat/completions").post({
-            body: {
-                messages: messages,
-                max_tokens: 800,
-                temperature: 0.7,
-                top_p: 1,
-                frequency_penalty: 0,
-                presence_penalty: 0,
-                model: "gpt-4o-mini", // Using the same model as GitHub Models
-            },
-        });
-
-        if (response.status !== "200") {
-            throw new Error(`Request failed with status ${response.status}`);
-        }
-
-        const result = response.body;
-        const content = result.choices[0]?.message?.content;
-
-        console.log("✅ Azure AI Foundry Response:");
-        console.log("=" .repeat(50));
-        console.log(content);
-        console.log("=" .repeat(50));
-        
-        return content;
-
-    } catch (error) {
-        console.error("❌ Error calling Azure AI Foundry:", error);
-        throw error;
+    // ✅ Clean output
+    const message = response.body?.choices?.[0]?.message?.content;
+    if (message) {
+      console.log("AI says:\n");
+      console.log(message);
+    } else {
+      console.log("No message received from the model.");
     }
+  } catch (error) {
+    console.error("Something went wrong:", error.message || error);
+  }
 }
 
-// Main execution
-async function main() {
-    console.log("🎯 Quest 2: Azure AI Foundry Integration");
-    console.log("🌟 Moving AI prototype from GitHub Models to Azure AI Foundry");
-    
-    await chatWithAzureAI();
-    
-    console.log("\n🎉 Quest 2 completed! Your AI prototype is now connected to Azure AI Foundry!");
-    console.log("📋 Next steps:");
-    console.log("1. Configure your Azure AI Foundry credentials in .env file");
-    console.log("2. Test the connection with: node ai-foundry.js");
-    console.log("3. Push your code to GitHub to complete the quest");
-}
-
-// Run the main function
-main().catch((error) => {
-    console.error("❌ Fatal error:", error);
-    process.exit(1);
-});
+// Run the function
+run();

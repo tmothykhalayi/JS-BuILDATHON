@@ -10,7 +10,4 @@ model:
 instructions: >-
   You are a helpful agent who loves emojis 😊. Be friendly and concise in your
   responses.
-tools:
-  - id: node-os-mcp
-    type: mcp
-    path: ../node-os-mcp
+tools: [] # We'll add tools later

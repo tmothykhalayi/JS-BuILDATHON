@@ -137,6 +137,8 @@ _ReSharper*/
 # TeamCity is a build add-in
 _TeamCity*
 
+.env
+
 # DotCover is a Code Coverage Tool
 *.dotCover
 
@@ -203,9 +205,6 @@ PublishScripts/
 **/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
-# Exception for our Node.js packages folder (not .NET packages)
-!packages/
-!packages/**
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
 # NuGet v3's project.json files produces more ignorable files
@@ -290,6 +289,12 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+
+# Track these directories
+!packages/
+!webapi/
+!webapp/
+!node-os-mcp/
 
 # Visual Studio 6 build log
 *.plg
@@ -405,6 +410,6 @@ FodyWeavers.xsd
 
 # Environment variables
 .env
+.azure
 
-# Agent configuration files (contains sensitive info)
-packages/agent/my-agent.agent.yaml
+!agent/

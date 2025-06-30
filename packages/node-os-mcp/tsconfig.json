@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "declaration": true,
-    "target": "es2020",
+    "target": "es2017",
     "module": "nodenext",
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "outDir": "./lib",
+    "rootDir": "./",
     "moduleResolution": "nodenext",
     "sourceMap": true,
     "incremental": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "tsBuildInfoFile": "./lib/.tsbuildinfo",
     "esModuleInterop": true
   }
 }

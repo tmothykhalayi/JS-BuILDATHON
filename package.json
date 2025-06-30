@@ -1,18 +1,31 @@
 {
-  "type": "module",
+  "name": "js-ai-build-a-thon",
+  "version": "1.0.0",
+  "description": "> To reset your progress and select a different quest, click this button:\r >\r > [![Reset Progress](https://img.shields.io/badge/Reset--Progress-ff3860?logo=mattermost)](../../issues/new?title=Reset+Progress:+Back+to+Welcome&labels=reset&body=🔄+I+want+to+reset+my+progress+and+go+back+to+the+Welcome+page.%0A%0A**Please+wait+about+15+seconds.+Your+progress+will+be+reset,+this+issue+will+automatically+close,+and+you+will+be+taken+back+to+the+Welcome+page+to+select+a+new+quest.**)",
+  "main": "sample.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Daniel-Kav/JS-AI-Build-a-thon.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Daniel-Kav/JS-AI-Build-a-thon/issues"
+  },
+  "homepage": "https://github.com/Daniel-Kav/JS-AI-Build-a-thon#readme",
   "dependencies": {
-    "@azure-rest/ai-inference": "latest",
-    "@azure/core-auth": "latest",
-    "@azure/core-sse": "latest",
-    "@langchain/openai": "^0.5.16",
-    "cors": "^2.8.5",
+    "@azure-rest/ai-inference": "^1.0.0-beta.6",
+    "@azure/core-auth": "^1.9.0",
+    "@azure/openai": "^2.0.0",
+    "@mistralai/mistralai": "^1.7.2",
     "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "langchain": "^0.3.29",
-    "pdf-parse": "^1.1.1"
-  }
+    "openai": "^5.5.1",
+    "pdf-parse": "^1.1.1",
+    "sharp": "^0.34.2"
+  },
+  "type": "module"
 }
